@@ -21,12 +21,14 @@ func NewClient(endpoint, apiVersion, accessKeyID, accessKeySecret string, opts .
 	}, nil
 }
 
-func (c *Client) GinServer() *gin.Engine {
+func (c *Client) GinServer(mountRoot string) *gin.Engine {
 	e := gin.New()
 
 	e.Use(cors.Default())
 
-	apiGroup := e.Group("/api/function")
+	rootGroup := e.Group(mountRoot)
+
+	apiGroup := rootGroup.Group("/api/function")
 	apiGroup.POST("/update", c.UpdateFunction)
 
 	return e

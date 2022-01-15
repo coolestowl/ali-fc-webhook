@@ -20,7 +20,7 @@ jobs:
     
     - name: docker build
       run: |
-        echo IMAGE_TAG=ci-$(TZ=Asia/Shanghai date +%Y%m%d%H%M)-$(git describe --always) >> $GITHUB_ENV
+        echo IMAGE_TAG=ci-$(TZ=Asia/Shanghai date +%Y%m%d%H%M)-$(git describe --abbrev=0) >> $GITHUB_ENV
 
         docker build -f Dockerfile -t ${{ secrets.DOCKER_IMAGE_NAME }}:${{ env.IMAGE_TAG }} .
     

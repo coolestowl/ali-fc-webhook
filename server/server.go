@@ -1,6 +1,8 @@
 package server
 
 import (
+	"net/http"
+
 	"github.com/aliyun/fc-go-sdk"
 	"github.com/gin-gonic/contrib/cors"
 	"github.com/gin-gonic/gin"
@@ -24,6 +26,12 @@ func NewClient(endpoint, apiVersion, accessKeyID, accessKeySecret string, opts .
 func (c *Client) GinServer(mountRoot string) *gin.Engine {
 	e := gin.New()
 
+	e.NoRoute(func(c *gin.Context) {
+		c.JSON(http.StatusNotFound, gin.H{
+			"msg": "not found",
+			"uri": c.Request.URL.Path,
+		})
+	})
 	e.Use(cors.Default())
 
 	rootGroup := e.Group(mountRoot)

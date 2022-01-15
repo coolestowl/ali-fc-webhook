@@ -9,7 +9,7 @@ import (
 func ErrFuncHandler(ctx *gin.Context, f func(*gin.Context) (interface{}, error)) {
 	resp, err := f(ctx)
 	if err != nil {
-		ctx.AbortWithError(http.StatusBadRequest, err)
+		_ = ctx.AbortWithError(http.StatusBadRequest, err)
 		return
 	}
 

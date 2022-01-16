@@ -37,6 +37,13 @@ func (c *Client) GinServer(mountRoot string) *gin.Engine {
 
 	rootGroup := e.Group(mountRoot)
 
+	rootGroup.GET("/msg", func(c *gin.Context) {
+		c.JSON(http.StatusOK, gin.H{
+			"code": 0,
+			"msg":  "auto update test",
+		})
+	})
+
 	apiGroup := rootGroup.Group("/api")
 	apiGroup.GET("/", ErrFuncWrapper(c.Services))
 	apiGroup.GET("/:service", ErrFuncWrapper(c.Functions))

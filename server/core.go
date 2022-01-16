@@ -31,12 +31,28 @@ func (cli *Client) CheckServiceFunction(service, function string) (bool, error) 
 }
 
 type FunctionReq struct {
-	Custom *CustomImage `json:"custom"`
+	Service *Service     `json:"service"`
+	Custom  *CustomImage `json:"custom"`
+}
+
+type Service struct {
+	RoleARN string `json:"role"`
 }
 
 type CustomImage struct {
 	Image        string `json:"image"`
 	Acceleration string `json:"acceleration"`
+}
+
+func (cli *Client) CreateService(service string, req *FunctionReq) (interface{}, error) {
+	in := fc.NewCreateServiceInput().WithServiceName(service)
+
+	if req.Service != nil {
+		in.WithRole(req.Service.RoleARN)
+	}
+
+	resp, err := cli.sdk.CreateService(in)
+	return resp, err
 }
 
 func (cli *Client) CreateFunction(service, function string, req *FunctionReq) (interface{}, error) {

@@ -165,11 +165,7 @@ func (cli *Client) apply(service, function string, req *FunctionReq) (interface{
 	}
 
 	if !ok {
-		in := fc.NewCreateServiceInput()
-		in.WithServiceName(service)
-		in.WithRole("")
-
-		if _, err = cli.sdk.CreateService(in); err != nil {
+		if _, err = cli.CreateService(service, req); err != nil {
 			return nil, err
 		}
 	}

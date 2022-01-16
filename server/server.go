@@ -43,6 +43,9 @@ func (c *Client) GinServer(mountRoot string) *gin.Engine {
 	apiGroup.GET("/:service/:function", ErrFuncWrapper(c.Get))
 	apiGroup.POST("/:service/:function", ErrFuncWrapper(c.Apply))
 
+	triggerGroup := rootGroup.Group("/alitrigger")
+	triggerGroup.POST("/:service/:function", ErrFuncWrapper(c.AliTriggerApply))
+
 	return e
 }
 
@@ -145,6 +148,10 @@ func (cli *Client) Apply(ctx *gin.Context) (interface{}, error) {
 		return nil, err
 	}
 
+	return cli.apply(service, function, &req)
+}
+
+func (cli *Client) apply(service, function string, req *FunctionReq) (interface{}, error) {
 	ok, err := cli.CheckService(service)
 	if err != nil {
 		return nil, err
@@ -169,7 +176,7 @@ func (cli *Client) Apply(ctx *gin.Context) (interface{}, error) {
 		f = cli.CreateFunction
 	}
 
-	return f(service, function, &req)
+	return f(service, function, req)
 }
 
 func ErrFuncWrapper(f func(*gin.Context) (interface{}, error)) func(*gin.Context) {

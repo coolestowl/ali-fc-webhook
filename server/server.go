@@ -1,6 +1,7 @@
 package server
 
 import (
+	"fmt"
 	"net/http"
 
 	"github.com/aliyun/fc-go-sdk"
@@ -36,85 +37,154 @@ func (c *Client) GinServer(mountRoot string) *gin.Engine {
 
 	rootGroup := e.Group(mountRoot)
 
-	apiGroup := rootGroup.Group("/api/function")
-	apiGroup.POST("/update", c.UpdateFunction)
+	apiGroup := rootGroup.Group("/api")
+	apiGroup.GET("/", ErrFuncWrapper(c.Services))
+	apiGroup.GET("/:service", ErrFuncWrapper(c.Functions))
+	apiGroup.GET("/:service/:function", ErrFuncWrapper(c.Get))
+	apiGroup.POST("/:service/:function", ErrFuncWrapper(c.Apply))
 
 	return e
 }
 
-type CreateFunctionReq struct {
-	Service  string       `json:"service"`
-	Function string       `json:"function"`
-	Custom   *CustomImage `json:"custom"`
+func (cli *Client) Services(ctx *gin.Context) (interface{}, error) {
+	out, err := cli.sdk.ListServices(fc.NewListServicesInput())
+	if err != nil {
+		return nil, err
+	}
+
+	type Service struct {
+		ID   string
+		Name string
+	}
+
+	services := make([]Service, 0, len(out.Services))
+	for _, svc := range out.Services {
+		services = append(services, Service{
+			ID:   *svc.ServiceID,
+			Name: *svc.ServiceName,
+		})
+	}
+
+	return services, nil
 }
 
-func (cli *Client) CreateFunction(ctx *gin.Context) {
-	ErrFuncHandler(ctx, func(c *gin.Context) (interface{}, error) {
-		req := &CreateFunctionReq{}
+func (cli *Client) Functions(ctx *gin.Context) (interface{}, error) {
+	service := ctx.Param("service")
 
-		if err := c.ShouldBindJSON(req); err != nil {
-			return nil, err
+	out, err := cli.sdk.ListFunctions(fc.NewListFunctionsInput(service))
+	if err != nil {
+		return nil, err
+	}
+
+	type Function struct {
+		ID     string
+		Name   string
+		Custom *CustomImage
+	}
+
+	functions := make([]Function, 0, len(out.Functions))
+	for _, svc := range out.Functions {
+		f := Function{
+			ID:   *svc.FunctionID,
+			Name: *svc.FunctionName,
 		}
 
-		in := fc.NewCreateFunctionInput(req.Function)
-		if req.Custom != nil {
-			customImageConf := fc.NewCustomContainerConfig().
-				WithImage(req.Custom.Image).
-				WithAccelerationType("None")
-
-			if req.Custom.Acceleration == "Default" {
-				customImageConf.WithAccelerationType("Default")
+		if svc.CustomContainerConfig != nil {
+			f.Custom = &CustomImage{
+				Image:        *svc.CustomContainerConfig.Image,
+				Acceleration: *svc.CustomContainerConfig.AccelerationType,
 			}
-
-			in.WithCustomContainerConfig(customImageConf)
 		}
 
-		resp, err := cli.sdk.CreateFunction(in)
+		functions = append(functions, f)
+	}
+
+	return functions, nil
+}
+
+func (cli *Client) Get(ctx *gin.Context) (interface{}, error) {
+	var (
+		service  = ctx.Param("service")
+		function = ctx.Param("function")
+	)
+
+	ok, err := cli.CheckService(service)
+	if err != nil {
+		return nil, err
+	}
+
+	if !ok {
+		return nil, fmt.Errorf("service: %v", service)
+	}
+
+	ok, err = cli.CheckServiceFunction(service, function)
+	if err != nil {
+		return nil, err
+	}
+
+	if !ok {
+		return nil, fmt.Errorf("function: %v", service)
+	}
+
+	data, err := cli.sdk.GetFunction(fc.NewGetFunctionInput(service, function))
+	if err != nil {
+		return nil, err
+	}
+
+	return data, nil
+}
+
+func (cli *Client) Apply(ctx *gin.Context) (interface{}, error) {
+	var (
+		service  = ctx.Param("service")
+		function = ctx.Param("function")
+		req      = FunctionReq{}
+	)
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		return nil, err
+	}
+
+	ok, err := cli.CheckService(service)
+	if err != nil {
+		return nil, err
+	}
+
+	if !ok {
+		in := fc.NewCreateServiceInput()
+		in.WithServiceName(service)
+
+		if _, err = cli.sdk.CreateService(in); err != nil {
+			return nil, err
+		}
+	}
+
+	ok, err = cli.CheckServiceFunction(service, function)
+	if err != nil {
+		return nil, err
+	}
+
+	f := cli.UpdateFunction
+	if !ok {
+		f = cli.CreateFunction
+	}
+
+	return f(service, function, &req)
+}
+
+func ErrFuncWrapper(f func(*gin.Context) (interface{}, error)) func(*gin.Context) {
+	return func(ctx *gin.Context) {
+		resp, err := f(ctx)
 		if err != nil {
-			return nil, err
+			ctx.JSON(http.StatusBadRequest, gin.H{
+				"code":    1,
+				"message": err.Error(),
+			})
+			return
 		}
 
-		return resp, nil
-	})
-}
-
-type UpdateFunctionReq struct {
-	Service  string       `json:"service"`
-	Function string       `json:"function"`
-	Custom   *CustomImage `json:"custom"`
-}
-
-type CustomImage struct {
-	Image        string `json:"image"`
-	Acceleration string `json:"acceleration"`
-}
-
-func (cli *Client) UpdateFunction(ctx *gin.Context) {
-	ErrFuncHandler(ctx, func(c *gin.Context) (interface{}, error) {
-		req := &UpdateFunctionReq{}
-
-		if err := ctx.ShouldBindJSON(req); err != nil {
-			return nil, err
-		}
-
-		in := fc.NewUpdateFunctionInput(req.Service, req.Function)
-		if req.Custom != nil {
-			customImageConf := fc.NewCustomContainerConfig().
-				WithImage(req.Custom.Image).
-				WithAccelerationType("None")
-
-			if req.Custom.Acceleration == "Default" {
-				customImageConf.WithAccelerationType("Default")
-			}
-
-			in.WithCustomContainerConfig(customImageConf)
-		}
-
-		resp, err := cli.sdk.UpdateFunction(in)
-		if err != nil {
-			return nil, err
-		}
-
-		return resp, nil
-	})
+		ctx.JSON(http.StatusOK, gin.H{
+			"code": 0,
+			"data": resp,
+		})
+	}
 }

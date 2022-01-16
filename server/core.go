@@ -1,20 +1,79 @@
 package server
 
-import (
-	"net/http"
+import "github.com/aliyun/fc-go-sdk"
 
-	"github.com/gin-gonic/gin"
-)
-
-func ErrFuncHandler(ctx *gin.Context, f func(*gin.Context) (interface{}, error)) {
-	resp, err := f(ctx)
+func (cli *Client) CheckService(service string) (bool, error) {
+	output, err := cli.sdk.ListServices(fc.NewListServicesInput())
 	if err != nil {
-		_ = ctx.AbortWithError(http.StatusBadRequest, err)
-		return
+		return false, err
 	}
 
-	ctx.JSON(http.StatusOK, gin.H{
-		"code": 0,
-		"data": resp,
-	})
+	for _, svc := range output.Services {
+		if svc.ServiceName != nil && *svc.ServiceName == service {
+			return true, nil
+		}
+	}
+	return false, nil
+}
+
+func (cli *Client) CheckServiceFunction(service, function string) (bool, error) {
+	output, err := cli.sdk.ListFunctions(fc.NewListFunctionsInput(service))
+	if err != nil {
+		return false, err
+	}
+
+	for _, f := range output.Functions {
+		if f.FunctionName != nil && *f.FunctionName == function {
+			return true, nil
+		}
+	}
+	return false, nil
+}
+
+type FunctionReq struct {
+	Custom *CustomImage `json:"custom"`
+}
+
+type CustomImage struct {
+	Image        string `json:"image"`
+	Acceleration string `json:"acceleration"`
+}
+
+func (cli *Client) CreateFunction(service, function string, req *FunctionReq) (interface{}, error) {
+	in := fc.NewCreateFunctionInput(service)
+	in.WithFunctionName(function)
+
+	if req.Custom != nil {
+		customImageConf := fc.NewCustomContainerConfig().
+			WithImage(req.Custom.Image).
+			WithAccelerationType("None")
+
+		if req.Custom.Acceleration == "Default" {
+			customImageConf.WithAccelerationType("Default")
+		}
+
+		in.WithCustomContainerConfig(customImageConf)
+	}
+
+	resp, err := cli.sdk.CreateFunction(in)
+	return resp, err
+}
+
+func (cli *Client) UpdateFunction(service, function string, req *FunctionReq) (interface{}, error) {
+	in := fc.NewUpdateFunctionInput(service, function)
+
+	if req.Custom != nil {
+		customImageConf := fc.NewCustomContainerConfig().
+			WithImage(req.Custom.Image).
+			WithAccelerationType("None")
+
+		if req.Custom.Acceleration == "Default" {
+			customImageConf.WithAccelerationType("Default")
+		}
+
+		in.WithCustomContainerConfig(customImageConf)
+	}
+
+	resp, err := cli.sdk.UpdateFunction(in)
+	return resp, err
 }

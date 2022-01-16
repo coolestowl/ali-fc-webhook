@@ -52,13 +52,18 @@ func (cli *Client) CreateFunction(service, function string, req *FunctionReq) (i
 			customImageConf.WithAccelerationType("Default")
 		}
 
+		in.WithRuntime("custom-container")
+		in.WithHandler("index.handler")
 		in.WithCustomContainerConfig(customImageConf)
 	}
 
 	resp, err := cli.sdk.CreateFunction(in)
+	if err != nil {
+		return nil, err
+	}
 
 	protectSecret(resp.EnvironmentVariables, "ENDPOINT", "ACCESS_KEY", "SECRET")
-	return resp, err
+	return resp, nil
 }
 
 func (cli *Client) UpdateFunction(service, function string, req *FunctionReq) (interface{}, error) {
@@ -77,6 +82,9 @@ func (cli *Client) UpdateFunction(service, function string, req *FunctionReq) (i
 	}
 
 	resp, err := cli.sdk.UpdateFunction(in)
+	if err != nil {
+		return nil, err
+	}
 
 	protectSecret(resp.EnvironmentVariables, "ENDPOINT", "ACCESS_KEY", "SECRET")
 	return resp, err

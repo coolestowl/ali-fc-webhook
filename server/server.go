@@ -167,6 +167,7 @@ func (cli *Client) apply(service, function string, req *FunctionReq) (interface{
 	if !ok {
 		in := fc.NewCreateServiceInput()
 		in.WithServiceName(service)
+		in.WithRole("")
 
 		if _, err = cli.sdk.CreateService(in); err != nil {
 			return nil, err
@@ -205,6 +206,10 @@ func ErrFuncWrapper(f func(*gin.Context) (interface{}, error)) func(*gin.Context
 }
 
 func protectSecret(mp map[string]string, keys ...string) {
+	if mp == nil {
+		return
+	}
+
 	for _, key := range keys {
 		if _, ok := mp[key]; ok {
 			mp[key] = "******"

@@ -131,6 +131,12 @@ func (cli *Client) Get(ctx *gin.Context) (interface{}, error) {
 		return nil, err
 	}
 
+	for _, secretKey := range []string{"ENDPOINT", "ACCESS_KEY", "SECRET"} {
+		if _, ok := data.EnvironmentVariables[secretKey]; ok {
+			data.EnvironmentVariables[secretKey] = "******"
+		}
+	}
+
 	return data, nil
 }
 

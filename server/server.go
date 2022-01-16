@@ -42,6 +42,42 @@ func (c *Client) GinServer(mountRoot string) *gin.Engine {
 	return e
 }
 
+type CreateFunctionReq struct {
+	Service  string       `json:"service"`
+	Function string       `json:"function"`
+	Custom   *CustomImage `json:"custom"`
+}
+
+func (cli *Client) CreateFunction(ctx *gin.Context) {
+	ErrFuncHandler(ctx, func(c *gin.Context) (interface{}, error) {
+		req := &CreateFunctionReq{}
+
+		if err := c.ShouldBindJSON(req); err != nil {
+			return nil, err
+		}
+
+		in := fc.NewCreateFunctionInput(req.Function)
+		if req.Custom != nil {
+			customImageConf := fc.NewCustomContainerConfig().
+				WithImage(req.Custom.Image).
+				WithAccelerationType("None")
+
+			if req.Custom.Acceleration == "Default" {
+				customImageConf.WithAccelerationType("Default")
+			}
+
+			in.WithCustomContainerConfig(customImageConf)
+		}
+
+		resp, err := cli.sdk.CreateFunction(in)
+		if err != nil {
+			return nil, err
+		}
+
+		return resp, nil
+	})
+}
+
 type UpdateFunctionReq struct {
 	Service  string       `json:"service"`
 	Function string       `json:"function"`

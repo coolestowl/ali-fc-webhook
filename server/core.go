@@ -56,6 +56,8 @@ func (cli *Client) CreateFunction(service, function string, req *FunctionReq) (i
 	}
 
 	resp, err := cli.sdk.CreateFunction(in)
+
+	protectSecret(resp.EnvironmentVariables, "ENDPOINT", "ACCESS_KEY", "SECRET")
 	return resp, err
 }
 
@@ -75,5 +77,7 @@ func (cli *Client) UpdateFunction(service, function string, req *FunctionReq) (i
 	}
 
 	resp, err := cli.sdk.UpdateFunction(in)
+
+	protectSecret(resp.EnvironmentVariables, "ENDPOINT", "ACCESS_KEY", "SECRET")
 	return resp, err
 }

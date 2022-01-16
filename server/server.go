@@ -131,12 +131,7 @@ func (cli *Client) Get(ctx *gin.Context) (interface{}, error) {
 		return nil, err
 	}
 
-	for _, secretKey := range []string{"ENDPOINT", "ACCESS_KEY", "SECRET"} {
-		if _, ok := data.EnvironmentVariables[secretKey]; ok {
-			data.EnvironmentVariables[secretKey] = "******"
-		}
-	}
-
+	protectSecret(data.EnvironmentVariables, "ENDPOINT", "ACCESS_KEY", "SECRET")
 	return data, nil
 }
 
@@ -192,5 +187,13 @@ func ErrFuncWrapper(f func(*gin.Context) (interface{}, error)) func(*gin.Context
 			"code": 0,
 			"data": resp,
 		})
+	}
+}
+
+func protectSecret(mp map[string]string, keys ...string) {
+	for _, key := range keys {
+		if _, ok := mp[key]; ok {
+			mp[key] = "******"
+		}
 	}
 }

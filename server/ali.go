@@ -1,6 +1,10 @@
 package server
 
-import "github.com/gin-gonic/gin"
+import (
+	"fmt"
+
+	"github.com/gin-gonic/gin"
+)
 
 type PushData struct {
 	Digest   string `json:"digest"`
@@ -33,9 +37,17 @@ func (cli *Client) AliTriggerApply(ctx *gin.Context) (interface{}, error) {
 		return nil, err
 	}
 
+	fullImageName := fmt.Sprintf(
+		"registry.%s.aliyuncs.com/%s/%s:%s",
+		req.Repo.Region,
+		req.Repo.Namespace,
+		req.Repo.Name,
+		req.PushData.Tag,
+	)
+
 	return cli.apply(service, function, &FunctionReq{
 		Custom: &CustomImage{
-			Image:        req.Repo.Name + req.PushData.Tag,
+			Image:        fullImageName,
 			Acceleration: "Default",
 		},
 	})

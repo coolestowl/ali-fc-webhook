@@ -16,6 +16,7 @@ func Excute() {
 		accessKey = os.Getenv("ACCESS_KEY")
 		secret    = os.Getenv("SECRET")
 		jwtSecret = os.Getenv("JWT_SECRET")
+		jwtDat    = os.Getenv("JWT_DAT")
 		mountRoot = os.Getenv("MOUNT_ROOT")
 	)
 
@@ -49,6 +50,7 @@ func Excute() {
 
 	if len(jwtSecret) > 0 {
 		server.InitJwtSecret([]byte(jwtSecret))
+		server.SetJwtDat(jwtDat)
 	}
 
 	cli, err := server.NewClient(cfg)

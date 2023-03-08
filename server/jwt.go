@@ -10,11 +10,16 @@ import (
 
 var (
 	jwtSecret       = []byte("default-key-github.com/golang-jwt/jwt/v4")
+	datKey          = "ali-fc-webhook"
 	errUnauthorized = errors.New("Unauthorized")
 )
 
 func InitJwtSecret(key []byte) {
 	jwtSecret = key
+}
+
+func SetJwtDat(data string) {
+	datKey = data
 }
 
 func JWTAuth(ctx *gin.Context) {
@@ -40,7 +45,7 @@ func JWTAuth(ctx *gin.Context) {
 		}
 
 		dat, ok := claims["dat"].(string)
-		if !ok || dat != "ali-fc-webhook" {
+		if !ok || dat != datKey {
 			return errUnauthorized
 		}
 

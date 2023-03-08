@@ -38,38 +38,72 @@ func (c *Client) GinServer(mountRoot string) *gin.Engine {
 	e.Use(cors.Default())
 
 	rootGroup := e.Group(mountRoot)
-
-	rootGroup.GET("/msg", func(c *gin.Context) {
-		c.JSON(http.StatusOK, gin.H{
-			"code": 0,
-			"msg":  "auto update test",
-		})
-	})
 	rootGroup.GET("/version", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{
 			"code": 0,
-			"data": map[string]string{
-				"version": build.Version,
-				"go":      build.GoVersion,
-				"os/arch": build.OSArch,
-				"commit":  build.GitHash,
-				"built":   build.BuildTime,
-			},
+			"data": build.InfoMap,
 		})
 	})
 
 	apiGroup := rootGroup.Group("/api")
-	apiGroup.GET("/", ErrFuncWrapper(c.Services))
-	apiGroup.GET("/:service", ErrFuncWrapper(c.Functions))
-	apiGroup.GET("/:service/:function", ErrFuncWrapper(c.Get))
-	apiGroup.POST("/:service/:function", ErrFuncWrapper(c.Apply))
+	{
+		apiGroup.GET("/domains", ErrFuncWrapper(c.Domains))
+		apiGroup.GET("/services", ErrFuncWrapper(c.Services))
+		apiGroup.GET("/service/:service/functions", ErrFuncWrapper(c.Functions))
+		apiGroup.GET("/service/:service/function/:function", ErrFuncWrapper(c.Get))
+		apiGroup.POST("/service/:service/function/:function", ErrFuncWrapper(c.Apply))
+	}
 
 	triggerGroup := rootGroup.Group("/alitrigger")
-	triggerGroup.POST("/:service/:function", ErrFuncWrapper(c.AliTriggerApply))
+	{
+		triggerGroup.POST("/service/:service/function/:function", ErrFuncWrapper(c.AliTriggerApply))
+	}
 
 	gin.SetMode(gin.ReleaseMode)
-
 	return e
+}
+
+func (cli *Client) Domains(ctx *gin.Context) (interface{}, error) {
+	out, err := cli.sdk.ListCustomDomains(&fc.ListCustomDomainsRequest{})
+	if err != nil {
+		return nil, err
+	}
+
+	if out.Body == nil || out.Body.CustomDomains == nil {
+		return nil, fmt.Errorf("status: %d", *out.StatusCode)
+	}
+
+	type Route struct {
+		Path   string
+		Target string
+	}
+
+	type Domain struct {
+		Name   string
+		Routes []Route
+	}
+
+	domains := make([]Domain, 0, len(out.Body.CustomDomains))
+	for _, dom := range out.Body.CustomDomains {
+		d := Domain{
+			Name: *dom.DomainName,
+		}
+
+		if dom.RouteConfig != nil {
+			routes := make([]Route, 0, len(dom.RouteConfig.Routes))
+			for _, r := range dom.RouteConfig.Routes {
+				routes = append(routes, Route{
+					Path:   *r.Path,
+					Target: fmt.Sprintf("%s/%s:%s", *r.ServiceName, *r.FunctionName, *r.Qualifier),
+				})
+			}
+			d.Routes = routes
+		}
+
+		domains = append(domains, d)
+	}
+
+	return domains, nil
 }
 
 func (cli *Client) Services(ctx *gin.Context) (interface{}, error) {

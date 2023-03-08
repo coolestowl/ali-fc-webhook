@@ -99,7 +99,7 @@ func (cli *Client) Functions(ctx *gin.Context) (interface{}, error) {
 			Name: *svc.FunctionName,
 		}
 
-		if svc.CustomContainerConfig != nil {
+		if svc.CustomContainerConfig != nil && svc.CustomContainerConfig.Image != nil && svc.CustomContainerConfig.AccelerationType != nil {
 			f.Custom = &CustomImage{
 				Image:        *svc.CustomContainerConfig.Image,
 				Acceleration: *svc.CustomContainerConfig.AccelerationType,

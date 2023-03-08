@@ -1,6 +1,7 @@
 package server
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 
@@ -29,21 +30,15 @@ func NewClient(cfg *openapi.Config) (*Client, error) {
 func (c *Client) GinServer(mountRoot string) *gin.Engine {
 	e := gin.Default()
 
-	e.NoRoute(func(c *gin.Context) {
-		c.JSON(http.StatusNotFound, gin.H{
-			"msg": "not found",
-			"uri": c.Request.URL.Path,
-		})
-	})
 	e.Use(cors.Default())
+	e.NoRoute(ErrFuncWrapper(func(c *gin.Context) (interface{}, error) {
+		return c.Request.URL.Path, errors.New("not found")
+	}))
 
 	rootGroup := e.Group(mountRoot)
-	rootGroup.GET("/version", func(c *gin.Context) {
-		c.JSON(http.StatusOK, gin.H{
-			"code": 0,
-			"data": build.InfoMap,
-		})
-	})
+	rootGroup.GET("/version", ErrFuncWrapper(func(c *gin.Context) (interface{}, error) {
+		return build.InfoMap, nil
+	}))
 
 	apiGroup := rootGroup.Group("/api")
 	{
@@ -250,14 +245,16 @@ func ErrFuncWrapper(f func(*gin.Context) (interface{}, error)) func(*gin.Context
 		resp, err := f(ctx)
 		if err != nil {
 			ctx.JSON(http.StatusBadRequest, gin.H{
-				"code":    1,
-				"message": err.Error(),
+				"code": 1,
+				"msg":  err.Error(),
+				"data": resp,
 			})
 			return
 		}
 
 		ctx.JSON(http.StatusOK, gin.H{
 			"code": 0,
+			"msg":  "success",
 			"data": resp,
 		})
 	}

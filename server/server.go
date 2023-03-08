@@ -26,7 +26,7 @@ func NewClient(cfg *openapi.Config) (*Client, error) {
 }
 
 func (c *Client) GinServer(mountRoot string) *gin.Engine {
-	e := gin.New()
+	e := gin.Default()
 
 	e.NoRoute(func(c *gin.Context) {
 		c.JSON(http.StatusNotFound, gin.H{
@@ -53,6 +53,8 @@ func (c *Client) GinServer(mountRoot string) *gin.Engine {
 
 	triggerGroup := rootGroup.Group("/alitrigger")
 	triggerGroup.POST("/:service/:function", ErrFuncWrapper(c.AliTriggerApply))
+
+	gin.SetMode(gin.ReleaseMode)
 
 	return e
 }

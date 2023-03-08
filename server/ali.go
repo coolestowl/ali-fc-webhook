@@ -38,7 +38,7 @@ func (cli *Client) AliTriggerApply(ctx *gin.Context) (interface{}, error) {
 	}
 
 	fullImageName := fmt.Sprintf(
-		"registry.%s.aliyuncs.com/%s/%s:%s",
+		"registry-vpc.%s.aliyuncs.com/%s/%s:%s",
 		req.Repo.Region,
 		req.Repo.Namespace,
 		req.Repo.Name,
@@ -47,8 +47,7 @@ func (cli *Client) AliTriggerApply(ctx *gin.Context) (interface{}, error) {
 
 	return cli.apply(service, function, &FunctionReq{
 		Custom: &CustomImage{
-			Image:        fullImageName,
-			Acceleration: "None",
+			Image: fullImageName,
 		},
 	})
 }

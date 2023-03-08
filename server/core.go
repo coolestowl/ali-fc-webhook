@@ -73,11 +73,6 @@ func (cli *Client) CreateFunction(service, function string, req *FunctionReq) (i
 	if req.Custom != nil {
 		customImageConf := &fc.CustomContainerConfig{}
 		customImageConf.SetImage(req.Custom.Image)
-		customImageConf.SetAccelerationType("None")
-
-		if req.Custom.Acceleration == "Default" {
-			customImageConf.SetAccelerationType("Default")
-		}
 
 		in.SetRuntime("custom-container")
 		in.SetHandler("index.handler")
@@ -100,10 +95,6 @@ func (cli *Client) CreateFunction(service, function string, req *FunctionReq) (i
 func (cli *Client) UpdateFunction(service, function string, req *FunctionReq) (interface{}, error) {
 	customImageConf := &fc.CustomContainerConfig{}
 	customImageConf.SetImage(req.Custom.Image)
-	customImageConf.SetAccelerationType("None")
-	if req.Custom.Acceleration == "Default" {
-		customImageConf.SetAccelerationType("Default")
-	}
 
 	in := &fc.UpdateFunctionRequest{}
 	in.SetCustomContainerConfig(customImageConf)

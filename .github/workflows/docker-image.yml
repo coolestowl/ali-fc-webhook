@@ -27,7 +27,7 @@ jobs:
       - run: echo ${{ env.IMAGE_TAG }}
 
       - name: static build
-        run: CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags '-extldflags "-static"' -o main cmd/*.go
+        run: make build
 
       - name: docker build
         run: docker build -f Dockerfile -t ${{ secrets.DOCKER_IMAGE_NAME }}:${{ env.IMAGE_TAG }} .

@@ -1,4 +1,4 @@
-package main
+package cmd
 
 import (
 	"os"
@@ -9,7 +9,7 @@ import (
 	"github.com/coolestowl/ali-fc-webhook/server"
 )
 
-func main() {
+func Excute() {
 	var (
 		endpoint  = os.Getenv("ENDPOINT")
 		region    = os.Getenv("REGION")

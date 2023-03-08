@@ -6,6 +6,7 @@ import (
 
 	openapi "github.com/alibabacloud-go/darabonba-openapi/v2/client"
 	fc "github.com/alibabacloud-go/fc-open-20210406/v2/client"
+	"github.com/coolestowl/ali-fc-webhook/build"
 	"github.com/gin-gonic/contrib/cors"
 	"github.com/gin-gonic/gin"
 )
@@ -42,6 +43,18 @@ func (c *Client) GinServer(mountRoot string) *gin.Engine {
 		c.JSON(http.StatusOK, gin.H{
 			"code": 0,
 			"msg":  "auto update test",
+		})
+	})
+	rootGroup.GET("/version", func(c *gin.Context) {
+		c.JSON(http.StatusOK, gin.H{
+			"code": 0,
+			"data": map[string]string{
+				"version": build.Version,
+				"go":      build.GoVersion,
+				"os/arch": build.OSArch,
+				"commit":  build.GitHash,
+				"built":   build.BuildTime,
+			},
 		})
 	})
 

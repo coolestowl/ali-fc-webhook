@@ -3,19 +3,21 @@ package main
 import (
 	"os"
 
+	openapi "github.com/alibabacloud-go/darabonba-openapi/v2/client"
+	credential "github.com/aliyun/credentials-go/credentials"
 	"github.com/coolestowl/ali-fc-webhook/server"
 )
 
 func main() {
 	var (
 		endpoint  = os.Getenv("ENDPOINT")
-		version   = os.Getenv("VERSION")
+		region    = os.Getenv("REGION")
 		accessKey = os.Getenv("ACCESS_KEY")
 		secret    = os.Getenv("SECRET")
 		mountRoot = os.Getenv("MOUNT_ROOT")
 	)
 
-	for _, each := range []string{endpoint, version, accessKey, secret} {
+	for _, each := range []string{endpoint, region, accessKey, secret} {
 		if len(each) == 0 {
 			panic("not enough parameters !")
 		}
@@ -24,7 +26,24 @@ func main() {
 		mountRoot = "/"
 	}
 
-	cli, err := server.NewClient(endpoint, version, accessKey, secret)
+	cfg := new(openapi.Config)
+	cfg.SetAccessKeyId(accessKey)
+	cfg.SetAccessKeySecret(secret)
+	cfg.SetRegionId(region)
+	cfg.SetEndpoint(endpoint)
+	cfg.SetCredential(func() credential.Credential {
+		cred, err := credential.NewCredential(&credential.Config{
+			AccessKeyId:     cfg.AccessKeyId,
+			AccessKeySecret: cfg.AccessKeySecret,
+			SecurityToken:   cfg.SecurityToken,
+		})
+		if err != nil {
+			panic(err)
+		}
+		return cred
+	}())
+
+	cli, err := server.NewClient(cfg)
 	if err != nil {
 		panic(err)
 	}

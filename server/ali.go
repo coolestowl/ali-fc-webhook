@@ -48,7 +48,7 @@ func (cli *Client) AliTriggerApply(ctx *gin.Context) (interface{}, error) {
 	return cli.apply(service, function, &FunctionReq{
 		Custom: &CustomImage{
 			Image:        fullImageName,
-			Acceleration: "Default",
+			Acceleration: "None",
 		},
 	})
 }

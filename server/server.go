@@ -4,7 +4,8 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/aliyun/fc-go-sdk"
+	openapi "github.com/alibabacloud-go/darabonba-openapi/v2/client"
+	fc "github.com/alibabacloud-go/fc-open-20210406/v2/client"
 	"github.com/gin-gonic/contrib/cors"
 	"github.com/gin-gonic/gin"
 )
@@ -13,8 +14,8 @@ type Client struct {
 	sdk *fc.Client
 }
 
-func NewClient(endpoint, apiVersion, accessKeyID, accessKeySecret string, opts ...fc.ClientOption) (*Client, error) {
-	sdk, err := fc.NewClient(endpoint, apiVersion, accessKeyID, accessKeySecret, opts...)
+func NewClient(cfg *openapi.Config) (*Client, error) {
+	sdk, err := fc.NewClient(cfg)
 	if err != nil {
 		return nil, err
 	}
@@ -57,9 +58,13 @@ func (c *Client) GinServer(mountRoot string) *gin.Engine {
 }
 
 func (cli *Client) Services(ctx *gin.Context) (interface{}, error) {
-	out, err := cli.sdk.ListServices(fc.NewListServicesInput())
+	out, err := cli.sdk.ListServices(&fc.ListServicesRequest{})
 	if err != nil {
 		return nil, err
+	}
+
+	if out.Body == nil || out.Body.Services == nil {
+		return nil, fmt.Errorf("status: %d", *out.StatusCode)
 	}
 
 	type Service struct {
@@ -67,10 +72,10 @@ func (cli *Client) Services(ctx *gin.Context) (interface{}, error) {
 		Name string
 	}
 
-	services := make([]Service, 0, len(out.Services))
-	for _, svc := range out.Services {
+	services := make([]Service, 0, len(out.Body.Services))
+	for _, svc := range out.Body.Services {
 		services = append(services, Service{
-			ID:   *svc.ServiceID,
+			ID:   *svc.ServiceId,
 			Name: *svc.ServiceName,
 		})
 	}
@@ -81,9 +86,13 @@ func (cli *Client) Services(ctx *gin.Context) (interface{}, error) {
 func (cli *Client) Functions(ctx *gin.Context) (interface{}, error) {
 	service := ctx.Param("service")
 
-	out, err := cli.sdk.ListFunctions(fc.NewListFunctionsInput(service))
+	out, err := cli.sdk.ListFunctions(&service, &fc.ListFunctionsRequest{})
 	if err != nil {
 		return nil, err
+	}
+
+	if out.Body == nil || out.Body.Functions == nil {
+		return nil, fmt.Errorf("status: %d", *out.StatusCode)
 	}
 
 	type Function struct {
@@ -92,10 +101,10 @@ func (cli *Client) Functions(ctx *gin.Context) (interface{}, error) {
 		Custom *CustomImage
 	}
 
-	functions := make([]Function, 0, len(out.Functions))
-	for _, svc := range out.Functions {
+	functions := make([]Function, 0, len(out.Body.Functions))
+	for _, svc := range out.Body.Functions {
 		f := Function{
-			ID:   *svc.FunctionID,
+			ID:   *svc.FunctionId,
 			Name: *svc.FunctionName,
 		}
 
@@ -136,12 +145,16 @@ func (cli *Client) Get(ctx *gin.Context) (interface{}, error) {
 		return nil, fmt.Errorf("function: %v", service)
 	}
 
-	data, err := cli.sdk.GetFunction(fc.NewGetFunctionInput(service, function))
+	data, err := cli.sdk.GetFunction(&service, &function, &fc.GetFunctionRequest{})
 	if err != nil {
 		return nil, err
 	}
 
-	protectSecret(data.EnvironmentVariables, "ENDPOINT", "ACCESS_KEY", "SECRET")
+	if data.Body == nil {
+		return nil, fmt.Errorf("status: %d", *data.StatusCode)
+	}
+
+	protectSecret(data.Body.EnvironmentVariables, "ENDPOINT", "ACCESS_KEY", "SECRET")
 	return data, nil
 }
 
@@ -201,14 +214,15 @@ func ErrFuncWrapper(f func(*gin.Context) (interface{}, error)) func(*gin.Context
 	}
 }
 
-func protectSecret(mp map[string]string, keys ...string) {
+func protectSecret(mp map[string]*string, keys ...string) {
 	if mp == nil {
 		return
 	}
 
+	secret := "******"
 	for _, key := range keys {
 		if _, ok := mp[key]; ok {
-			mp[key] = "******"
+			mp[key] = &secret
 		}
 	}
 }

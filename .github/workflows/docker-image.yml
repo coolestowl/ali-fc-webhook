@@ -21,9 +21,6 @@ jobs:
           go env -w GO111MODULE=on
           go env -w GOPROXY=https://goproxy.cn,direct
 
-      - name: Install dependencies
-        run: go get .
-
       - name: set env
         run: echo IMAGE_TAG=${GITHUB_REF#refs/*/}-$(TZ=Asia/Shanghai date +%Y%m%d%H%M)-$(git rev-parse --short "$GITHUB_SHA") >> $GITHUB_ENV
 

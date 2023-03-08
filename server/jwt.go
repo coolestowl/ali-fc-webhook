@@ -39,9 +39,11 @@ func JWTAuth(ctx *gin.Context) {
 			return errUnauthorized
 		}
 
-		if claims["dat"] != "ali-fc-webhook" {
+		dat, ok := claims["dat"].(string)
+		if !ok || dat != "ali-fc-webhook" {
 			return errUnauthorized
 		}
+
 		return nil
 	}
 

@@ -47,7 +47,9 @@ func Excute() {
 		return cred
 	}())
 
-	server.InitJwtSecret([]byte(jwtSecret))
+	if len(jwtSecret) > 0 {
+		server.InitJwtSecret([]byte(jwtSecret))
+	}
 
 	cli, err := server.NewClient(cfg)
 	if err != nil {

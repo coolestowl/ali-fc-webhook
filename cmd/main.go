@@ -32,14 +32,16 @@ func main() {
 	cfg.SetRegionId(region)
 	cfg.SetEndpoint(endpoint)
 	cfg.SetCredential(func() credential.Credential {
-		cred, err := credential.NewCredential(&credential.Config{
-			AccessKeyId:     cfg.AccessKeyId,
-			AccessKeySecret: cfg.AccessKeySecret,
-			SecurityToken:   cfg.SecurityToken,
-		})
+		in := &credential.Config{}
+		in.SetType("access_key")
+		in.SetAccessKeyId(*cfg.AccessKeyId)
+		in.SetAccessKeySecret(*cfg.AccessKeySecret)
+
+		cred, err := credential.NewCredential(in)
 		if err != nil {
 			panic(err)
 		}
+
 		return cred
 	}())
 

@@ -40,7 +40,7 @@ build:
 	done
 
 .PHONY: build-static
-build:
+build-static:
 	@for _ in _ ; do \
 		EXTRA_FLAGS="-X 'github.com/coolestowl/ali-fc-webhook/build.OSArch=linux/amd64'" ; \
 		CGO_ENABLED=0 ${GO} build -ldflags "${GLOBAL_LD_FLAGS} $${EXTRA_FLAGS}" -o ${OUTPUT} ${ENTRY} ; \

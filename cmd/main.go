@@ -15,6 +15,7 @@ func Excute() {
 		region    = os.Getenv("REGION")
 		accessKey = os.Getenv("ACCESS_KEY")
 		secret    = os.Getenv("SECRET")
+		jwtSecret = os.Getenv("JWT_SECRET")
 		mountRoot = os.Getenv("MOUNT_ROOT")
 	)
 
@@ -45,6 +46,8 @@ func Excute() {
 
 		return cred
 	}())
+
+	server.InitJwtSecret([]byte(jwtSecret))
 
 	cli, err := server.NewClient(cfg)
 	if err != nil {

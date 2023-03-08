@@ -40,7 +40,7 @@ func (c *Client) GinServer(mountRoot string) *gin.Engine {
 		return build.InfoMap, nil
 	}))
 
-	apiGroup := rootGroup.Group("/api")
+	apiGroup := rootGroup.Group("/api", JWTAuth)
 	{
 		apiGroup.GET("/domains", ErrFuncWrapper(c.Domains))
 		apiGroup.GET("/services", ErrFuncWrapper(c.Services))
@@ -49,7 +49,7 @@ func (c *Client) GinServer(mountRoot string) *gin.Engine {
 		apiGroup.POST("/service/:service/function/:function", ErrFuncWrapper(c.Apply))
 	}
 
-	triggerGroup := rootGroup.Group("/alitrigger")
+	triggerGroup := rootGroup.Group("/alitrigger", JWTAuth)
 	{
 		triggerGroup.POST("/service/:service/function/:function", ErrFuncWrapper(c.AliTriggerApply))
 	}
@@ -244,7 +244,7 @@ func ErrFuncWrapper(f func(*gin.Context) (interface{}, error)) func(*gin.Context
 	return func(ctx *gin.Context) {
 		resp, err := f(ctx)
 		if err != nil {
-			ctx.JSON(http.StatusBadRequest, gin.H{
+			ctx.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
 				"code": 1,
 				"msg":  err.Error(),
 				"data": resp,
@@ -252,7 +252,7 @@ func ErrFuncWrapper(f func(*gin.Context) (interface{}, error)) func(*gin.Context
 			return
 		}
 
-		ctx.JSON(http.StatusOK, gin.H{
+		ctx.AbortWithStatusJSON(http.StatusOK, gin.H{
 			"code": 0,
 			"msg":  "success",
 			"data": resp,

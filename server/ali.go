@@ -49,5 +49,6 @@ func (cli *Client) AliTriggerApply(ctx *gin.Context) (interface{}, error) {
 		Custom: &CustomImage{
 			Image: fullImageName,
 		},
+		CreateWithHTTPTrigger: true,
 	})
 }

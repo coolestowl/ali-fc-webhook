@@ -1,6 +1,7 @@
 package server
 
 import (
+	"encoding/json"
 	"fmt"
 
 	fc "github.com/alibabacloud-go/fc-open-20210406/v2/client"
@@ -44,8 +45,9 @@ func (cli *Client) CheckServiceFunction(service, function string) (bool, error) 
 }
 
 type FunctionReq struct {
-	Service *Service     `json:"service"`
-	Custom  *CustomImage `json:"custom"`
+	Service               *Service     `json:"service"`
+	Custom                *CustomImage `json:"custom"`
+	CreateWithHTTPTrigger bool         `json:"create_with_http_trigger"`
 }
 
 type Service struct {
@@ -88,6 +90,28 @@ func (cli *Client) CreateFunction(service, function string, req *FunctionReq) (i
 		return nil, fmt.Errorf("status: %d", *resp.StatusCode)
 	}
 
+	if req.CreateWithHTTPTrigger {
+		ctr := &fc.CreateTriggerRequest{}
+		ctr.SetTriggerType("http")
+		ctr.SetTriggerName("default-http")
+
+		cfg := &fc.HTTPTriggerConfig{}
+		cfg.SetAuthType("anonymous")
+		cfg.SetMethods([]*string{toPtr("GET"), toPtr("POST")})
+		cfg.SetDisableURLInternet(false)
+
+		data, _ := json.Marshal(cfg)
+		ctr.SetTriggerConfig(string(data))
+
+		rsp, err := cli.sdk.CreateTrigger(&service, &function, ctr)
+		if err != nil {
+			return nil, err
+		}
+		if rsp.Body == nil {
+			return nil, fmt.Errorf("status: %d", *rsp.StatusCode)
+		}
+	}
+
 	protectSecret(resp.Body.EnvironmentVariables, "ENDPOINT", "ACCESS_KEY", "SECRET")
 	return resp, nil
 }
@@ -110,4 +134,8 @@ func (cli *Client) UpdateFunction(service, function string, req *FunctionReq) (i
 
 	protectSecret(resp.Body.EnvironmentVariables, "ENDPOINT", "ACCESS_KEY", "SECRET")
 	return resp, err
+}
+
+func toPtr[T any](x T) *T {
+	return &x
 }

@@ -1,6 +1,6 @@
 FROM alpine:latest
 
-COPY main /main
+COPY ./dist/main /main
 
 EXPOSE 8000
 

@@ -1,6 +1,6 @@
 GO     := go
 ENTRY  := main.go
-DIST   := .
+DIST   := ./dist
 OUTPUT := ${DIST}/main
 
 GO_VERSION   := $(shell go version | awk '{print $$3}')

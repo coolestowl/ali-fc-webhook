@@ -27,7 +27,7 @@ func NewClient(cfg *openapi.Config) (*Client, error) {
 	}, nil
 }
 
-func (c *Client) GinServer(mountRoot string) *gin.Engine {
+func (c *Client) GinServer() *gin.Engine {
 	e := gin.Default()
 
 	e.Use(cors.Default())
@@ -35,12 +35,11 @@ func (c *Client) GinServer(mountRoot string) *gin.Engine {
 		return c.Request.URL.Path, errors.New("not found")
 	}))
 
-	rootGroup := e.Group(mountRoot)
-	rootGroup.GET("/version", ErrFuncWrapper(func(c *gin.Context) (interface{}, error) {
+	e.GET("/version", ErrFuncWrapper(func(c *gin.Context) (interface{}, error) {
 		return build.InfoMap, nil
 	}))
 
-	apiGroup := rootGroup.Group("/api", JWTAuth)
+	apiGroup := e.Group("/api", JWTAuth)
 	{
 		apiGroup.GET("/domains", ErrFuncWrapper(c.Domains))
 		apiGroup.GET("/services", ErrFuncWrapper(c.Services))
@@ -49,7 +48,7 @@ func (c *Client) GinServer(mountRoot string) *gin.Engine {
 		apiGroup.POST("/service/:service/function/:function", ErrFuncWrapper(c.Apply))
 	}
 
-	triggerGroup := rootGroup.Group("/alitrigger", JWTAuth)
+	triggerGroup := e.Group("/alitrigger", JWTAuth)
 	{
 		triggerGroup.POST("/service/:service/function/:function", ErrFuncWrapper(c.AliTriggerApply))
 	}

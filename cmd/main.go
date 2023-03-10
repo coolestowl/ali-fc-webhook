@@ -16,17 +16,12 @@ func Excute() {
 		accessKey = os.Getenv("ACCESS_KEY")
 		secret    = os.Getenv("SECRET")
 		jwtSecret = os.Getenv("JWT_SECRET")
-		jwtDat    = os.Getenv("JWT_DAT")
-		mountRoot = os.Getenv("MOUNT_ROOT")
 	)
 
 	for _, each := range []string{endpoint, region, accessKey, secret} {
 		if len(each) == 0 {
 			panic("not enough parameters !")
 		}
-	}
-	if mountRoot == "" {
-		mountRoot = "/"
 	}
 
 	cfg := new(openapi.Config)
@@ -50,7 +45,6 @@ func Excute() {
 
 	if len(jwtSecret) > 0 {
 		server.InitJwtSecret([]byte(jwtSecret))
-		server.SetJwtDat(jwtDat)
 	}
 
 	cli, err := server.NewClient(cfg)
@@ -58,7 +52,7 @@ func Excute() {
 		panic(err)
 	}
 
-	if err := cli.GinServer(mountRoot).Run(":8000"); err != nil {
+	if err := cli.GinServer().Run(":8000"); err != nil {
 		panic(err)
 	}
 }

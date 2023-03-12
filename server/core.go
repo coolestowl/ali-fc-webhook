@@ -72,6 +72,8 @@ func (cli *Client) CreateService(service string, req *FunctionReq) (interface{},
 func (cli *Client) CreateFunction(service, function string, req *FunctionReq) (interface{}, error) {
 	in := &fc.CreateFunctionRequest{}
 	in.SetFunctionName(function)
+	in.SetInstanceConcurrency(100)
+	in.SetInstanceSoftConcurrency(80)
 	if req.Custom != nil {
 		customImageConf := &fc.CustomContainerConfig{}
 		customImageConf.SetImage(req.Custom.Image)
